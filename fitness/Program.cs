@@ -1,8 +1,10 @@
 using fitness.DataBase;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.OpenApi.Models;
 using Microsoft.IdentityModel.Tokens;
-using Microsoft.OpenApi;
+
+
 using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -28,13 +30,20 @@ builder.Services.AddSwaggerGen(c =>
     });
 
     // 🎯 Folosim doc pentru a lega corect referința de securitate la rute
-    c.AddSecurityRequirement(doc => new OpenApiSecurityRequirement
+    c.AddSecurityRequirement(new OpenApiSecurityRequirement
+{
     {
+        new OpenApiSecurityScheme
         {
-            new OpenApiSecuritySchemeReference("Bearer", doc),
-            new List<string>()
-        }
-    });
+            Reference = new OpenApiReference
+            {
+                Type = ReferenceType.SecurityScheme,
+                Id = "Bearer"
+            }
+        },
+        new string[] {}
+    }
+});
 });
 
 // Configurare DbContext
