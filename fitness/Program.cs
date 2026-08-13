@@ -1,24 +1,21 @@
 using fitness.DataBase;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.OpenApi.Models;
 using Microsoft.IdentityModel.Tokens;
-
-
+using Microsoft.OpenApi.Models;
 using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
-
+// 1. Servicii de bază
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 
-
+// 2. Configurare Swagger UI (valabil doar în Development)
 builder.Services.AddSwaggerGen(c =>
 {
     c.SwaggerDoc("v1", new OpenApiInfo { Title = "Fitness API", Version = "v1" });
 
-   
     c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
     {
         Name = "Authorization",
@@ -29,55 +26,60 @@ builder.Services.AddSwaggerGen(c =>
         Description = "Introdu token-ul tău JWT"
     });
 
-    // 🎯 Folosim doc pentru a lega corect referința de securitate la rute
     c.AddSecurityRequirement(new OpenApiSecurityRequirement
-{
     {
-        new OpenApiSecurityScheme
         {
-            Reference = new OpenApiReference
+            new OpenApiSecurityScheme
             {
-                Type = ReferenceType.SecurityScheme,
-                Id = "Bearer"
-            }
-        },
-        new string[] {}
-    }
-});
+                Reference = new OpenApiReference
+                {
+                    Type = ReferenceType.SecurityScheme,
+                    Id = "Bearer"
+                }
+            },
+            Array.Empty<string>()
+        }
+    });
 });
 
-// Configurare DbContext
+// 3. Configurare Bază de Date (PostgreSQL)
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 
-// Configurare Autentificare JWT
+// 4. Configurare Autentificare JWT
 var jwtSettings = builder.Configuration.GetSection("JwtSettings");
 var secretKey = jwtSettings["SecretKey"];
 
-builder.Services.AddAuthentication(options =>
+// Verificăm dacă cheia există (pentru a preveni erorile la pornire)
+if (!string.IsNullOrEmpty(secretKey))
 {
-    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
-    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
-})
-.AddJwtBearer(options =>
-{
-    options.TokenValidationParameters = new TokenValidationParameters
+    builder.Services.AddAuthentication(options =>
     {
-        ValidateIssuer = true,
-        ValidateAudience = true,
-        ValidateLifetime = true,
-        ValidateIssuerSigningKey = true,
-        ValidIssuer = jwtSettings["Issuer"],
-        ValidAudience = jwtSettings["Audience"],
-        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secretKey!))
-    };
-});
+        options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+        options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+    })
+    .AddJwtBearer(options =>
+    {
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuer = true,
+            ValidateAudience = true,
+            ValidateLifetime = true,
+            ValidateIssuerSigningKey = true,
+            ValidIssuer = jwtSettings["Issuer"],
+            ValidAudience = jwtSettings["Audience"],
+            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secretKey))
+        };
+    });
+}
 
 builder.Services.AddAuthorization();
 
 var app = builder.Build();
 
-// --- 2. PIPELINE ---
+// --- 5. PIPELINE HTTP ---
+
+// Swagger pornește DOAR în Development (Local pe PC)
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
@@ -87,8 +89,10 @@ if (app.Environment.IsDevelopment())
         c.RoutePrefix = "swagger";
     });
 }
+
 app.UseHttpsRedirection();
 
+// Secvența corectă pentru Middleware de Securitate
 app.UseAuthentication();
 app.UseAuthorization();
 
