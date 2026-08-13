@@ -1,6 +1,21 @@
-@fitness_HostAddress = http://localhost:5095
+@fitness_HostAddress = https://fitness-bi5n.onrender.com
 
-GET {{fitness_HostAddress}}/weatherforecast/
-Accept: application/json
+### 1. Înregistrare Utilizator Nou
+POST {{fitness_HostAddress}}/api/auth/register
+Content-Type: application/json
+
+{
+  "email": "testuser@gmail.com",
+  "password": "ParolaMeaSecurizata123!"
+}
 
 ###
+
+### 2. Autentificare (Login)
+POST {{fitness_HostAddress}}/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "testuser@gmail.com",
+  "password": "ParolaMeaSecurizata123!"
+}
