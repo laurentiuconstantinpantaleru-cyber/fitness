@@ -77,6 +77,19 @@ builder.Services.AddAuthorization();
 
 var app = builder.Build();
 
+// 💡 Aplică automat migrațiile în PostgreSQL la pornirea serverului
+using (var scope = app.Services.CreateScope())
+{
+    try
+    {
+        var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        dbContext.Database.Migrate();
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"Eroare la migrare DB: {ex.Message}");
+    }
+}
 // --- 5. PIPELINE HTTP ---
 
 // Swagger pornește DOAR în Development (Local pe PC)
